@@ -1,0 +1,5 @@
+cumulus
+altocumulus
+cirrocumulus
+cirrus
+cumulonimbus

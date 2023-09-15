@@ -1,0 +1,8 @@
+cloud
+hurricane
+lightning
+rain
+rainbow
+sun
+snowflake
+tornado

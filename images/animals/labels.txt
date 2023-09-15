@@ -1,0 +1,8 @@
+bird
+cat
+cat
+bird
+cow
+cat
+dog
+cow
