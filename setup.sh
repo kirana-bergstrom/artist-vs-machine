@@ -5,9 +5,6 @@ categories_file='categories.txt'
 
 # creates needed data directories
 mkdir -p data/raw
-mkdir -p data/simplified
-mkdir -p data/student_svgs
-mkdir -p models
 
 # downloads the relevant categorical data from google
 while read line; do  
@@ -15,3 +12,7 @@ while read line; do
     gsutil -m cp $URL data/raw
     i=$((i+1))  
 done < $categories_file
+
+# reduces and simplifies the data
+NUM_SIMPLE=10000
+python simple_data.py $NUM_SIMPLE

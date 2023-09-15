@@ -5,7 +5,6 @@ import matplotlib.colors as colors
 import matplotlib.patches as patches
 import random
 
-import pandas as pd
 import seaborn as sn
 import tensorflow as tf
 
@@ -21,34 +20,6 @@ preprocess = True
 with open(os.path.join(os.getcwd(),'categories.txt')) as f:
      categories = [line.rstrip('\n') for line in f]
 
-
-"""Prints and plots confusion matrix.
-
-Creates tensorflow confusion matrix and optionally prints and/or plots it.
-
-Args:
-  y:
-    True labels in integer array.
-  y_predict:
-    Predicted labels in integer array.
-  print_matrix:
-    If True prints matrix to standard output.
-  plot_matrix:
-    If True plots and displays matrix using seaborn.
-"""
-def print_and_plot_confusion(y, y_predict,
-                             print_matrix=True, plot_matrix=True):
-
-    cm = tf.math.confusion_matrix(labels=y,
-                                  predictions=np.argmax(y_predict, -1))
-    if print_matrix: print(cm)
-    if plot_matrix:
-        df_cm = pd.DataFrame(cm, index=categories, columns=categories)
-        plt.figure()
-        ncmap = colors.LinearSegmentedColormap.from_list("", ["white", "firebrick", "white"])
-        #sn.heatmap(df_cm, annot=True, cmap='inferno', fmt='g')
-        sn.heatmap(df_cm, annot=True, cmap=ncmap, vmin=0, vmax=300, fmt='g')
-        plt.show()
 
 """Draws and labels a misclassified data point.
 
