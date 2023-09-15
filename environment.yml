@@ -6,5 +6,12 @@ dependencies:
   - numpy
   - matplotlib
   - jupyter
+  - jsonlines
   - keras
   - tensorflow
+  - tqdm
+  - seaborn
+  - svg.path
+  - rdp
+  - scikit-learn
+  - ipympl
