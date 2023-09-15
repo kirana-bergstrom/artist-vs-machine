@@ -1,14 +1,10 @@
-name: daisy
+name: testenv
 channels:
 - conda-forge
 dependencies:
   - python=3.11
   - numpy
-  - psutil
-  - toolz
   - matplotlib
-  - dill
-  - pandas
-  - partd
-  - bokeh
-  - dask
+  - jupyter
+  - keras
+  - tensorflow
