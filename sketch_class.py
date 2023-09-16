@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import random
 
 import jsonlines
-from keras.layers import Activation, Dropout, Dense, LSTM
+from keras.layers import Activation, Dropout, Dense, LSTM, Rescaling, Conv2D, MaxPooling2D, Flatten
 from keras.models import Sequential
 import pandas as pd
 import seaborn as sn
@@ -108,8 +108,8 @@ def compile_and_fit_model(model_dir, model_name, epochs, batch_size,
     model = Sequential()
     model.add(LSTM(IMG_SIZE, return_sequences=True))
     model.add(Dropout(0.2))
-    model.add(LSTM(IMG_SIZE, return_sequences=True))
-    model.add(Dropout(0.2))
+    #model.add(LSTM(IMG_SIZE, return_sequences=True))
+    #model.add(Dropout(0.2))
     model.add(LSTM(IMG_SIZE))
     model.add(Dropout(0.2))
     model.add(Dense(len(categories)))

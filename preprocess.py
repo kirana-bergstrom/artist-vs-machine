@@ -79,7 +79,7 @@ def drawing_process(max_n_pts, image_size, drawing):
     binary_image[0,:len(x)] = x
     binary_image[1,:len(y)] = y
 
-    return binary_image
+    return binary_image.astype("uint8")
 
 
 """Preprocesses raw Quick, Draw! drawing vector data.
