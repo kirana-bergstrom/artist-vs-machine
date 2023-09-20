@@ -91,10 +91,10 @@ def preprocess_data(max_n_pts, preprocessed_data_dir,
 
 
 def get_dataset_partitions(ds, ds_size, train_split=0.8, val_split=0.1, test_split=0.1, shuffle=True, shuffle_size=8000):
+
     assert (train_split + test_split + val_split) == 1
 
     if shuffle:
-        # Specify seed to always have the same split distribution between runs
         ds = ds.shuffle(shuffle_size, seed=10, reshuffle_each_iteration=False)
 
     train_size = int(train_split * ds_size)
@@ -104,7 +104,7 @@ def get_dataset_partitions(ds, ds_size, train_split=0.8, val_split=0.1, test_spl
     val_ds = ds.skip(train_size).take(val_size)
     test_ds = ds.skip(train_size).skip(val_size)
 
-    return train_ds, val_ds, test_ds, train_size, val_size, ds_size - train_size - val_size
+    return (train_ds, val_ds, test_ds), (train_size, val_size, ds_size - train_size - val_size)
 
 
 """Compiles and fits the AI model.
@@ -138,12 +138,12 @@ Returns:
 
   The AI model that predicts categories for preprocessed sketch drawings.
 """
-def compile_and_fit_model(model_dir, model_name, epochs, batch_size,
+def compile_and_fit_model(model_dir, model_name, epochs, batch_size, max_n_pts,
                           train_dataset, validate_dataset, train_model=True):
 
     if train_model:
         model = Sequential()
-        model.add(Reshape((200, 2)))
+        model.add(Reshape((max_n_pts, 2)))
         model.add(Masking(mask_value=0.0))
         model.add(LSTM(64, return_sequences=True))
         model.add(Dropout(0.2))
@@ -162,9 +162,9 @@ def compile_and_fit_model(model_dir, model_name, epochs, batch_size,
         # train the model
         print(f'[Training AI]')
         train_dataset_map = train_dataset.map(lambda raw_data, data, label: (data, label))
-        train_dataset_padded = train_dataset_map.padded_batch(batch_size, padded_shapes=([200,2], []))
+        train_dataset_padded = train_dataset_map.padded_batch(batch_size, padded_shapes=([max_n_pts,2], []))
         validate_dataset_map = validate_dataset.map(lambda raw_data, data, label: (data, label))
-        validate_dataset_padded = validate_dataset_map.padded_batch(batch_size, padded_shapes=([200,2], []))
+        validate_dataset_padded = validate_dataset_map.padded_batch(batch_size, padded_shapes=([max_n_pts,2], []))
         model.fit(train_dataset_padded, epochs=epochs,
                   validation_data=validate_dataset_padded)
 
@@ -174,37 +174,6 @@ def compile_and_fit_model(model_dir, model_name, epochs, batch_size,
     else:
 
         model = load_model(f'{model_dir}/{model_name}.h5')
-
-    return model
-
-def compile_and_fit_model2(model_dir, model_name, epochs, batch_size,
-                          train_dataset, validate_dataset):
-
-    model = Sequential()
-    model.add(Reshape((200, 2)))
-    model.add(tf.keras.layers.Masking(mask_value=0.0))
-    model.add(LSTM(128, return_sequences=True))
-    model.add(Dropout(0.2))
-    model.add(LSTM(64, return_sequences=True))
-    model.add(Dropout(0.2))
-    model.add(LSTM(32))
-    model.add(Dropout(0.2))
-    model.add(Dense((8)))
-    model.add(Activation('softmax'))
-
-    # compile and set optimizer/metrics/loss function
-    model.compile(loss='sparse_categorical_crossentropy',
-                  optimizer='rmsprop',
-                  metrics=['sparse_categorical_accuracy'])
-
-    # train the model
-    print(f'[Training AI]')
-    train_padded = train_dataset.batch(batch_size, padded_shapes=([200,2], []))
-    model.fit(train_dataset, epochs=epochs,
-              validation_data=validate_dataset)
-
-    # save the model
-    model.save(f'{model_dir}/{model_name}.h5')
 
     return model
 

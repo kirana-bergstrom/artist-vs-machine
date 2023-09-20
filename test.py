@@ -73,3 +73,16 @@ def category_report(report_category, test_labels, y_predict):
             cat_index = categories.index(category)
             num = np.sum(in_category & (cat_index == np.argmax(y_predict, axis=1)))
             print(f'    {category.upper()} drawings {s*(max_cat_len-len(category))} DAISY thought were {report_category.upper()} drawings: {num}')
+
+
+def run_test(test_dataset, batch_size, max_pts, model):
+    
+    test_dataset_map = test_dataset.map(lambda raw_data, data, label: (data, label))
+    test_dataset_padded = test_dataset_map.padded_batch(batch_size, padded_shapes=([max_pts,2], []))
+
+    predict_labels = model.predict(test_dataset_padded)
+
+    raw_test_data = np.asarray(list(test_dataset.map(lambda raw_data, data, label: raw_data)))
+    test_labels = np.asarray(list(test_dataset.map(lambda raw_data, data, label: label)))
+
+    return raw_test_data, test_labels, predict_labels

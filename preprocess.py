@@ -117,7 +117,7 @@ def vector_process(max_n_pts, image_size, raw_data, labels):
     return preprocessed_data
 
 
-def student_process(max_n_pts, image_size, sketch_id, category):
+def preprocess_student_data(max_n_pts, image_size, sketch_id, category):
 
     svg_dom = minidom.parse(f'./data/student_svgs/{category}/{sketch_id}.svg')
 
@@ -159,7 +159,6 @@ def student_process(max_n_pts, image_size, sketch_id, category):
 
     y_student = [categories.index(category)]
     X_student = np.array(vector_process(max_n_pts, image_size, svg_pts))
-    #y_student = model.predict(np.array(X_student))
 
     return y_student, X_student, svg_pts
 
