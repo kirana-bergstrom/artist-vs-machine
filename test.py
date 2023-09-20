@@ -20,11 +20,11 @@ preprocess = True
 with open(os.path.join(os.getcwd(),'categories.txt')) as f:
      categories = [line.rstrip('\n') for line in f]
 
-def print_grades(y, y_predict, category_to_grade):
-
-    is_correct = (y == np.argmax(y_predict, axis=1))
-    num_correct = np.sum(is_correct)
-    num_total = len(is_correct)
+def print_grades(test_labels, y_predict, category_to_grade):
+    
+    is_correct = np.where(test_labels == np.argmax(y_predict, axis=1))[0]
+    num_correct = len(is_correct)
+    num_total = len(test_labels)
     num_incorrect = num_total - num_correct
     grades = [[num_correct / num_total, num_total, num_correct, num_incorrect]]
 
@@ -39,12 +39,13 @@ def print_grades(y, y_predict, category_to_grade):
 
     max_cat_len = np.max([len(cat) for cat in categories])
     for ind, category in enumerate(categories):
-        in_category = [i == ind for i in y]
-        num_correct = np.sum(in_category & (y == np.argmax(y_predict, axis=1)))
-        num_total = np.sum(in_category)
+        in_category = np.where(test_labels == ind)[0]
+        is_correct_category = np.where(test_labels[in_category] == np.argmax(y_predict[in_category], axis=1))[0]
+        num_correct = len(is_correct_category)
+        num_total = len(in_category)
         num_incorrect = num_total - num_correct
         grades.append([num_correct / num_total, num_total, num_correct, num_incorrect])
-
+    
     s = ' '
     if category_to_grade == 'total':
         print(f'TOTAL {s*(max_cat_len-len(category_to_grade))} test grade :  {grades[0][0]*100:0.2f}%')
@@ -55,11 +56,11 @@ def print_grades(y, y_predict, category_to_grade):
     print()
 
 
-def category_report(report_category, y, y_predict):
+def category_report(report_category, test_labels, y_predict):
 
     report_index = categories.index(report_category)
-    in_category = [i == report_index for i in y]
-    num_correct = np.sum(in_category & (y == np.argmax(y_predict, axis=1)))
+    in_category = [i == report_index for i in test_labels]
+    num_correct = np.sum(in_category & (test_labels == np.argmax(y_predict, axis=1)))
     num_total = np.sum(in_category)
     num_incorrect = num_total - num_correct
 

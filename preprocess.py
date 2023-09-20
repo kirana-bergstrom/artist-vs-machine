@@ -3,12 +3,16 @@ import numpy as np
 
 import os
 from functools import partial
+import jsonlines
 import multiprocessing as mp
 from rdp import rdp
 from tqdm.auto import tqdm
 from xml.dom import minidom
 from svg.path import parse_path
 
+
+
+MAX_PTS = 200
 
 with open(os.path.join(os.getcwd(),'categories.txt')) as f:
      categories = [line.rstrip('\n') for line in f]
@@ -61,13 +65,17 @@ Returns:
 
   Preprocessed data in array of size (2, max_n_pts).
 """
-def drawing_process(max_n_pts, image_size, drawing):
+def drawing_process(max_n_pts, image_size, raw_data):
+
+    drawing, label = raw_data
 
     vec_x = []
     vec_y = []
 
     for vector in drawing:
 
+        vector[0] = [float(v) for v in vector[0]]
+        vector[1] = [float(v) for v in vector[1]]
         vec_x = vec_x + vector[0]
         vec_y = vec_y + vector[1]
 
@@ -75,11 +83,13 @@ def drawing_process(max_n_pts, image_size, drawing):
 
     x, y = scale_and_shift(image_size, rdp_vector[:,0], rdp_vector[:,1])
 
-    binary_image = np.zeros((2,max_n_pts))
-    binary_image[0,:len(x)] = x
-    binary_image[1,:len(y)] = y
+    image_len = np.min([len(x), MAX_PTS])
+    binary_image = [[0.0]*image_len,[0.0]*image_len]
+    binary_image[0][:image_len] = x[:image_len]
+    binary_image[1][:image_len] = y[:image_len]
+    binary_image = (np.array(binary_image).T).tolist()
 
-    return binary_image.astype("uint8")
+    return {"raw_data" : drawing, "data" : binary_image, "label" : categories.index(label)}
 
 
 """Preprocesses raw Quick, Draw! drawing vector data.
@@ -97,12 +107,12 @@ Returns:
 
   Preprocessed data in a numpy array with each entry of size (2, max_n_pts).
 """
-def vector_process(max_n_pts, image_size, raw_data):
+def vector_process(max_n_pts, image_size, raw_data, labels):
 
     drawing_process_wrapper = partial(drawing_process, max_n_pts, image_size)
 
     with mp.Pool(mp.cpu_count()) as pool:
-        preprocessed_data = pool.map(drawing_process_wrapper, tqdm(raw_data))
+        preprocessed_data = pool.map(drawing_process_wrapper, tqdm(list(map(list, zip(raw_data, labels)))))
 
     return preprocessed_data
 
@@ -152,3 +162,27 @@ def student_process(max_n_pts, image_size, sketch_id, category):
     #y_student = model.predict(np.array(X_student))
 
     return y_student, X_student, svg_pts
+
+
+def preprocess_raw_data(image_size, raw_data_dir, preprocess_data_dir, n_per_class):
+
+    for cat in categories:
+        count = 0
+        max_n_pts = 0
+        #to_write = []
+        vector_data = []
+        label_data = []
+        print(f'[PREPROCESSING {cat} data]')
+        with jsonlines.open(f'{raw_data_dir}/{cat}.ndjson') as reader:
+            for obj in reader:
+                vector_data.append(obj['drawing'])
+                label_data.append(cat)
+                n_pts = 0
+                for stroke in obj['drawing']:
+                    n_pts += len(np.array(stroke).T)
+                if  n_pts > max_n_pts: max_n_pts = n_pts
+                if count == (n_per_class-1): break
+                count += 1
+        to_write = vector_process(max_n_pts, image_size, vector_data, label_data)
+        with jsonlines.open(f'{preprocess_data_dir}/{cat}.ndjson', 'w') as writer:
+            writer.write_all(to_write)

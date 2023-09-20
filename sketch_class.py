@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import random
 
 import jsonlines
-from keras.layers import Activation, Dropout, Dense, LSTM, Rescaling, Conv2D, MaxPooling2D, Flatten
-from keras.models import Sequential
+from keras.layers import Activation, Dropout, Dense, LSTM, Reshape, Masking
+from keras.models import Sequential, load_model
 import pandas as pd
 import seaborn as sn
 from sklearn.model_selection import train_test_split
@@ -53,20 +53,58 @@ Returns:
     An array of preprocessed validation data.
 """
 def preprocess_data(max_n_pts, preprocessed_data_dir,
-                    raw_X_train, raw_X_test, raw_X_validate):
+                    raw_X_train, raw_X_test, raw_X_validate,
+                    y_train, y_test, y_validate):
+
+    def gen(file):
+        with jsonlines.open(file) as reader:
+            for obj in reader:
+                data = tf.constant(obj['simple_data'])
+                label = tf.constant(obj['label'])
+                yield data, label
+    
+    def get_dataset(file):
+        generator = lambda: gen(file)
+        return tf.data.Dataset.from_generator(generator,
+                                              output_signature=(tf.TensorSpec(shape=(None, 2), dtype=tf.float32),
+                                                                tf.TensorSpec(shape=(), dtype=tf.string)))
+        
+    dataset_train = get_dataset(f'data/train_data.ndjson')
+    dataset_test = get_dataset(f'data/test_data.ndjson')
+    dataset_validate = get_dataset(f'data/validate_data.ndjson')
 
     print(f'[Preprocessing training data]')
-    X_train = np.array(vector_process(max_n_pts, IMG_SIZE, raw_X_train))
+    train_dataset = vector_process(max_n_pts, IMG_SIZE, raw_X_train, y_train)
     print(f'[Preprocessing testing data]')
-    X_test = np.array(vector_process(max_n_pts, IMG_SIZE, raw_X_test))
+    test_dataset = vector_process(max_n_pts, IMG_SIZE, raw_X_test, y_test)
     print(f'[Preprocessing validation data]')
-    X_validate = np.array(vector_process(max_n_pts, IMG_SIZE, raw_X_validate))
+    validate_dataset = vector_process(max_n_pts, IMG_SIZE, raw_X_validate, y_validate)
 
-    np.save(f'{preprocessed_data_dir}/x_train.npy', X_train)
-    np.save(f'{preprocessed_data_dir}/x_test.npy', X_test)
-    np.save(f'{preprocessed_data_dir}/x_validate.npy', X_validate)
+    with jsonlines.open(f'{preprocessed_data_dir}/x_train.ndjson', 'w') as writer:
+        writer.write_all(train_dataset)
+    with jsonlines.open(f'{preprocessed_data_dir}/x_test.ndjson', 'w') as writer:
+        writer.write_all(test_dataset)
+    with jsonlines.open(f'{preprocessed_data_dir}/x_validate.ndjson', 'w') as writer:
+        writer.write_all(validate_dataset)
 
-    return X_train, X_test, X_validate
+    return train_dataset, test_dataset, validate_dataset
+
+
+def get_dataset_partitions(ds, ds_size, train_split=0.8, val_split=0.1, test_split=0.1, shuffle=True, shuffle_size=8000):
+    assert (train_split + test_split + val_split) == 1
+
+    if shuffle:
+        # Specify seed to always have the same split distribution between runs
+        ds = ds.shuffle(shuffle_size, seed=10, reshuffle_each_iteration=False)
+
+    train_size = int(train_split * ds_size)
+    val_size = int(val_split * ds_size)
+
+    train_ds = ds.take(train_size)    
+    val_ds = ds.skip(train_size).take(val_size)
+    test_ds = ds.skip(train_size).skip(val_size)
+
+    return train_ds, val_ds, test_ds, train_size, val_size, ds_size - train_size - val_size
 
 
 """Compiles and fits the AI model.
@@ -101,18 +139,57 @@ Returns:
   The AI model that predicts categories for preprocessed sketch drawings.
 """
 def compile_and_fit_model(model_dir, model_name, epochs, batch_size,
-                          X_train, y_train,
-                          X_validate, y_validate):
+                          train_dataset, validate_dataset, train_model=True):
 
-    # define the NN model and layers
+    if train_model:
+        model = Sequential()
+        model.add(Reshape((200, 2)))
+        model.add(Masking(mask_value=0.0))
+        model.add(LSTM(64, return_sequences=True))
+        model.add(Dropout(0.2))
+        model.add(LSTM(64, return_sequences=True))
+        model.add(Dropout(0.2))
+        model.add(LSTM(32))
+        model.add(Dropout(0.2))
+        model.add(Dense((8)))
+        model.add(Activation('softmax'))
+
+        # compile and set optimizer/metrics/loss function
+        model.compile(loss='sparse_categorical_crossentropy',
+                      optimizer='rmsprop',
+                      metrics=['sparse_categorical_accuracy'])
+
+        # train the model
+        print(f'[Training AI]')
+        train_dataset_map = train_dataset.map(lambda raw_data, data, label: (data, label))
+        train_dataset_padded = train_dataset_map.padded_batch(batch_size, padded_shapes=([200,2], []))
+        validate_dataset_map = validate_dataset.map(lambda raw_data, data, label: (data, label))
+        validate_dataset_padded = validate_dataset_map.padded_batch(batch_size, padded_shapes=([200,2], []))
+        model.fit(train_dataset_padded, epochs=epochs,
+                  validation_data=validate_dataset_padded)
+
+        # save the model
+        model.save(f'{model_dir}/{model_name}.h5')
+
+    else:
+
+        model = load_model(f'{model_dir}/{model_name}.h5')
+
+    return model
+
+def compile_and_fit_model2(model_dir, model_name, epochs, batch_size,
+                          train_dataset, validate_dataset):
+
     model = Sequential()
-    model.add(LSTM(IMG_SIZE, return_sequences=True))
+    model.add(Reshape((200, 2)))
+    model.add(tf.keras.layers.Masking(mask_value=0.0))
+    model.add(LSTM(128, return_sequences=True))
     model.add(Dropout(0.2))
-    #model.add(LSTM(IMG_SIZE, return_sequences=True))
-    #model.add(Dropout(0.2))
-    model.add(LSTM(IMG_SIZE))
+    model.add(LSTM(64, return_sequences=True))
     model.add(Dropout(0.2))
-    model.add(Dense(len(categories)))
+    model.add(LSTM(32))
+    model.add(Dropout(0.2))
+    model.add(Dense((8)))
     model.add(Activation('softmax'))
 
     # compile and set optimizer/metrics/loss function
@@ -122,8 +199,9 @@ def compile_and_fit_model(model_dir, model_name, epochs, batch_size,
 
     # train the model
     print(f'[Training AI]')
-    model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size,
-              validation_data=(X_validate, y_validate))
+    train_padded = train_dataset.batch(batch_size, padded_shapes=([200,2], []))
+    model.fit(train_dataset, epochs=epochs,
+              validation_data=validate_dataset)
 
     # save the model
     model.save(f'{model_dir}/{model_name}.h5')
@@ -206,6 +284,7 @@ Returns:
   label_data:
     List of strings of labels corresponding to vector_data.
 """
+"""
 def get_data(raw_data_dir, n_per_class):
 
     max_n_pts = 0
@@ -226,3 +305,43 @@ def get_data(raw_data_dir, n_per_class):
                 count += 1
 
     return max_n_pts, vector_data, label_data
+"""
+
+def get_data(preprocess_data_dir, n_per_class):
+
+    def gen(preprocess_data_dir):
+        for category in categories:
+            count = 0
+            with jsonlines.open(f'{preprocess_data_dir}/{category}.ndjson') as reader:
+                for obj in reader:
+                    raw_data = tf.ragged.constant(obj['raw_data'])
+                    data = tf.constant(obj['data'])
+                    #label = tf.constant(categories.index(obj['label']))
+                    label = tf.constant(obj['label'])
+                    yield raw_data, data, label
+                    if count == (n_per_class-1): break
+                    count += 1
+    
+    return tf.data.Dataset.from_generator(lambda : gen(preprocess_data_dir),
+                                          output_signature=(tf.RaggedTensorSpec(shape=(None, None, None), dtype=tf.float32),
+                                                            tf.TensorSpec(shape=(None, 2), dtype=tf.float32),
+                                                            tf.TensorSpec(shape=(), dtype=tf.int32)))
+
+def new_get_data(preprocess_data_dir, n_per_class):
+
+    def gen(preprocess_data_dir):
+        for category in categories:
+            count = 0
+            with jsonlines.open(f'{preprocess_data_dir}/{category}.ndjson') as reader:
+                for obj in reader:
+                    raw_data = tf.ragged.constant(obj['raw_data'])
+                    data = tf.constant(obj['data'])
+                    label = tf.constant(obj['label'])
+                    yield raw_data, data, label
+                if count == (n_per_class-1): break
+                count += 1
+    
+    return tf.data.Dataset.from_generator(lambda : gen(preprocess_data_dir),
+                                          output_signature=(tf.RaggedTensorSpec(shape=(1, None, None), dtype=tf.float32),
+                                                            tf.TensorSpec(shape=(None, 2), dtype=tf.float32),
+                                                            tf.TensorSpec(shape=(), dtype=tf.int32)))

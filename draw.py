@@ -149,7 +149,7 @@ def draw_label_probs(X, y, y_predict, category, index=None):
     fig, axs = plt.subplots(1, 2, figsize=(8,4))
     for stroke in X_draw[index]:
         axs[0].plot(stroke[0], stroke[1], color='k', linewidth=3)
-    true_label = categories[y_draw[index]] if isinstance(y_draw[index], int) else y_draw[index]
+    true_label = categories[y_draw[index]]
     axs[0].set_title(f'{true_label}', weight='bold', y=0.0, size=15, bbox=dict(facecolor='w', edgecolor='k'))
     axs[1].set_title(f'DAISY says:', weight='bold', size=15, color='mediumvioletred')
     axs[1].barh(np.array(categories)[np.argsort(y_predict_draw[index])], y_predict_draw[index][np.argsort(y_predict_draw[index])],
@@ -183,14 +183,18 @@ Args:
   y_predict:
     Predicted labels in integer array.
 """
-def draw_and_label_widget(index, X, y, y_predict):
+def draw_and_label_widget(index, test_dataset, y_predict):
+
+    for count, data in enumerate(test_dataset):
+        if count == index:
+            raw_data, data, label = data
 
     fig, ax = plt.subplots(figsize=(5,4))
 
-    for stroke in X[index]:
+    for stroke in raw_data:
         plt.plot(stroke[0], stroke[1], color='k', linewidth=3)
 
-    true_label = categories[y[index]] if isinstance(y[index], int) else y[index]
+    true_label = categories[label]
     predicted_label = categories[np.argmax(y_predict[index])]
     plt.title(f'{true_label}', size=20, weight='bold', y=0.0,
               bbox=dict(facecolor='w', edgecolor='k'))
@@ -227,21 +231,26 @@ def draw_and_label(index, X, y, y_predict):
 """Draws a bunch of images from a certain category.
 
 """
-def draw_grid_widget(X, y, category, n_rows=3, n_cols=8, start_index=None):
+def draw_grid_widget(data, category, n_rows=3, n_cols=8, start_index=None):
 
-    draw_indices = [i for i, c in enumerate(y) if c == category]
-    X_draw = [X[i] for i in draw_indices]
+    category_data = data.filter(lambda raw_data, data, label: label == categories.index(category))
 
-    stop = len(X_draw) - n_rows * n_cols
-    if start_index is None: start_index = random.randint(0, stop)
+    if start_index is None: start_index = 0
+
+    iterator = iter(category_data)
+    i = 0
+    while i < start_index:
+        next(iterator)
+        i += 1
 
     fig, axs = plt.subplots(n_rows, n_cols, figsize=(n_cols, n_rows))
     rectangles = []
     plt.suptitle(category, weight='bold', y=0.1, size=15, bbox=dict(facecolor='none', edgecolor='k'))
     for i in range(n_rows):
         for j in range(n_cols):
+            raw_data, simple_data, label = next(iterator)
             sketch_num = start_index + i * n_cols + j
-            for line in X_draw[sketch_num]:
+            for line in raw_data:
                 axs[i,j].plot(line[0], line[1], color='k', linewidth=2)
             axs[i,j].axis('off')
             axs[i,j].invert_yaxis()
@@ -259,7 +268,6 @@ def draw_grid_widget(X, y, category, n_rows=3, n_cols=8, start_index=None):
     r = widgets.Dropdown(options=list(range(1,n_rows+1)), description='Row:', value=None)
     c = widgets.Dropdown(options=list(range(1,n_cols+1)), description='Column:', value=None)
     widgets.interact(select_plot, row_selector=r, col_selector=c)
-
 
 """Draws a bunch of images from a certain category.
 
@@ -297,23 +305,20 @@ Args:
   y:
     True labels in integer array.
 """
-def draw(X, y, index=None, category=None):
+def draw(data, category, index=None):
 
-    if not category:
-        X_draw = X
-        y_draw = y
-    else:
-        draw_indices = [i for i, c in enumerate(y) if c == category]
-        y_draw = [y[i] for i in draw_indices]
-        X_draw = [X[i] for i in draw_indices]
+    category_data = data.filter(lambda raw_data, data, label: label == categories.index(category))
 
-    if index is None: index = random.randint(0, len(X_draw))
+    if index is None: index = 0
+
+    for i, d in enumerate(category_data):
+        if i >= index: break
 
     plt.figure(figsize=(5,4))
-    for stroke in X_draw[index]:
+    raw_data, simple_data, label = d
+    for stroke in raw_data:
         plt.plot(stroke[0], stroke[1], color='k', linewidth=3)
-        true_label = y_draw[index]
-    plt.title(f'{true_label}', weight='bold', size=20, y=-0.1, bbox=dict(facecolor='w', edgecolor='k'))
+    plt.title(f'{categories[label]}', weight='bold', size=20, y=-0.1, bbox=dict(facecolor='w', edgecolor='k'))
     plt.axis('off')
     plt.gca().invert_yaxis()
     plt.show()
