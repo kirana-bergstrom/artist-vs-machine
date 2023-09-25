@@ -16,6 +16,9 @@ Please note that the raw data set is pulled directly from Google and while it wa
 Any images that are created with the weather categories and using all the pre-set random seeds, numbers of samples, and indices in this version of the code, have been checked for inappropriate content.
 Before giving this tutorial, it is advised that you check all the generated images in the slides and tutorial notebook.
 
+A hosted version of the tutorial is available on Binder.
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/kirana-bergstrom/artist-vs-machine/HEAD?labpath=notebook_tutorial.ipynb)
+
 ## Content
 - [Getting started](#getting-started)
 - [Pulling the raw data](#pulling-the-raw-data)

@@ -169,7 +169,7 @@ def get_data(preprocess_data_dir, n_per_class):
     def gen(preprocess_data_dir):
         for category in categories:
             count = 0
-            with jsonlines.open(f'{preprocess_data_dir}/{category}.ndjson') as reader:
+            with jsonlines.open(f'{preprocess_data_dir}/preprocessed_{n_per_class}-per-class.ndjson') as reader:
                 for obj in reader:
                     raw_data = tf.ragged.constant(obj['raw_data'])
                     data = tf.constant(obj['data'])
@@ -183,8 +183,7 @@ def get_data(preprocess_data_dir, n_per_class):
                                                                tf.TensorSpec(shape=(None, 2), dtype=tf.float32),
                                                                tf.TensorSpec(shape=(), dtype=tf.int32)))
 
-    return dataset.shuffle(n_per_class*len(categories), seed=RANDOM_STATE,
-                           reshuffle_each_iteration=False)
+    return dataset.cache().prefetch(tf.data.AUTOTUNE)
 
 
 """Preprocesses and predicts student data.
