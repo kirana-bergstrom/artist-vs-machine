@@ -20,6 +20,7 @@ preprocess = True
 with open(os.path.join(os.getcwd(),'categories.txt')) as f:
      categories = [line.rstrip('\n') for line in f]
 
+
 def print_grades(test_labels, y_predict, category_to_grade):
     
     is_correct = np.where(test_labels == np.argmax(y_predict, axis=1))[0]
@@ -51,28 +52,26 @@ def print_grades(test_labels, y_predict, category_to_grade):
         print(f'TOTAL {s*(max_cat_len-len(category_to_grade))} test grade :  {grades[0][0]*100:0.2f}%')
         print(f'{s*(max_cat_len+15)} {grade_convert(grades[0][0])}')
     else:
-        print(f'{category_to_grade.upper()} {s*(max_cat_len-len(category_to_grade))} test grade :  {grades[categories.index(category_to_grade)+1][0]*100:0.2f}%')
-        print(f'{s*(max_cat_len+15)} {grade_convert(grades[categories.index(category_to_grade)+1][0])}')
+        print(f'{category_to_grade.upper()} {s*(max_cat_len-len(category_to_grade))} test grade : {grades[categories.index(category_to_grade)+1][0]*100:0.2f}%')
+        print(f'{s*(max_cat_len+14)} {grade_convert(grades[categories.index(category_to_grade)+1][0])}')
     print()
 
 
 def category_report(report_category, test_labels, y_predict):
 
     report_index = categories.index(report_category)
-    in_category = [i == report_index for i in test_labels]
-    num_correct = np.sum(in_category & (test_labels == np.argmax(y_predict, axis=1)))
-    num_total = np.sum(in_category)
-    num_incorrect = num_total - num_correct
+    in_report_category = [i == report_index for i in test_labels]
 
     s = ' '
-    max_cat_len = np.max([len(cat) for cat in categories])
 
     print('number of...')
     for category in categories:
         if report_category != category:
-            cat_index = categories.index(category)
-            num = np.sum(in_category & (cat_index == np.argmax(y_predict, axis=1)))
-            print(f'    {category.upper()} drawings {s*(max_cat_len-len(category))} DAISY thought were {report_category.upper()} drawings: {num}')
+            spaces_len = np.max([len(category) for category in categories]) - len(category)
+            category_index = categories.index(category)
+            in_category = [i == category_index for i in test_labels]
+            num = np.sum(in_report_category & (category_index == np.argmax(y_predict, axis=1)))
+            print(f'    {report_category.upper()} drawings DAISY thought were {category.upper()} drawings: {s*spaces_len}{num}')
 
 
 def run_test(test_dataset, batch_size, max_pts, model):

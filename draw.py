@@ -11,12 +11,6 @@ import tensorflow as tf
 from ipywidgets import widgets
 
 
-IMG_SIZE = 256
-RANDOM_STATE = 10
-
-train = True
-preprocess = True
-
 with open(os.path.join(os.getcwd(),'categories.txt')) as f:
      categories = [line.rstrip('\n') for line in f]
 
@@ -53,7 +47,8 @@ def draw_label_probs(X, y, y_predict, category, index=None):
     true_label = categories[y_draw[index]] if isinstance(y_draw[index], int) else y_draw[index]
     axs[0].title.set_text(f'truth = {true_label}')
     axs[1].title.set_text(f'DAISY\'s prediction')
-    axs[1].barh(np.array(categories)[np.argsort(y_predict_draw[index])], y_predict_draw[index][np.argsort(y_predict_draw[index])],
+    axs[1].barh(np.array(categories)[np.argsort(y_predict_draw[index])],
+                                     y_predict_draw[index][np.argsort(y_predict_draw[index])],
                 color=palette)
     axs[0].axis('off')
     axs[1].tick_params(left=False)
@@ -65,7 +60,6 @@ def draw_label_probs(X, y, y_predict, category, index=None):
     axs[1].spines['top'].set_visible(False)
     axs[1].spines['right'].set_visible(False)
     axs[1].spines['bottom'].set_visible(False)
-    #axs[1].spines['left'].set_visible(False)
     axs[1].get_xaxis().set_ticks([])
     plt.show()
 
@@ -75,7 +69,7 @@ def draw_misclassification_grid(X, y, y_predict, true_category, index=None):
     in_class = [i for i, c in enumerate(zip(y, y_predict)) if categories[c[0]] == true_category]
     max_num_misclass = 5
     fig, axs = plt.subplots(1, max_num_misclass, figsize=(10,2))
-    fig.suptitle(f'DAISY thinks these are {true_category} drawings:', color='mediumvioletred', size=15, weight='bold')
+    fig.suptitle(f'DAISY said {true_category} for these drawings:', color='none', size=15, weight='bold')
     for ind_drawing in range(max_num_misclass):
         axs[ind_drawing].axis('off')
         axs[ind_drawing].invert_yaxis()
@@ -84,6 +78,7 @@ def draw_misclassification_grid(X, y, y_predict, true_category, index=None):
     fig.tight_layout()
 
     def select_category(false_category):
+        fig.suptitle(f'DAISY says {true_category} for these drawings', color='none', size=15, weight='bold')
         draw_indices = [i for i, c in enumerate(zip(y, y_predict)) if categories[c[0]] == true_category and categories[np.argmax(c[1])] == false_category]
         X_draw = [X[i] for i in draw_indices]
         if false_category != None:
@@ -92,14 +87,19 @@ def draw_misclassification_grid(X, y, y_predict, true_category, index=None):
                            bbox=dict(facecolor='none', edgecolor='none'))
                 for line in axs[ind_drawing].lines: line.remove()
             for ind_drawing in range(np.min([max_num_misclass, len(X_draw)])):
-                axs[ind_drawing].set_title(false_category, color='k', size=8, weight='bold', y=-0.1,
+                pred_category = categories[np.argmax(y_predict[draw_indices][ind_drawing])]
+                axs[ind_drawing].set_title(true_category, color='k', size=8, weight='bold', y=-0.1,
                                            bbox=dict(facecolor='w', edgecolor='k'))
                 for stroke in X_draw[ind_drawing]:
                     axs[ind_drawing].plot(stroke[0], stroke[1], color='k')
+                fig.suptitle(f'DAISY says {pred_category} for these drawings',
+                             color='mediumvioletred', size=15, weight='bold')
             fig.canvas.draw_idle()
 
     c = widgets.Dropdown(options=[cat for cat in categories if cat != true_category], description='category:', value=None)
     widgets.interact(select_category, false_category=c)
+
+
 """Draws and labels a misclassified data point.
 
 Takes a vector of sketch data, labels, and predicted labels, and draws one of

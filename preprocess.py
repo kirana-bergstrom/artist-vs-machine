@@ -9,10 +9,9 @@ from rdp import rdp
 from tqdm.auto import tqdm
 from xml.dom import minidom
 from svg.path import parse_path
+import tensorflow as tf
 
 
-
-MAX_PTS = 200
 
 with open(os.path.join(os.getcwd(),'categories.txt')) as f:
      categories = [line.rstrip('\n') for line in f]
@@ -83,7 +82,7 @@ def drawing_process(max_n_pts, image_size, raw_data):
 
     x, y = scale_and_shift(image_size, rdp_vector[:,0], rdp_vector[:,1])
 
-    image_len = np.min([len(x), MAX_PTS])
+    image_len = np.min([len(x), max_n_pts])
     binary_image = [[0.0]*image_len,[0.0]*image_len]
     binary_image[0][:image_len] = x[:image_len]
     binary_image[1][:image_len] = y[:image_len]
@@ -119,7 +118,7 @@ def vector_process(max_n_pts, image_size, raw_data, labels):
 
 def preprocess_student_data(max_n_pts, image_size, sketch_id, category):
 
-    svg_dom = minidom.parse(f'./data/student_svgs/{category}/{sketch_id}.svg')
+    svg_dom = minidom.parse(f'./data/student/{category}/{sketch_id}.svg')
 
     path_strings = [path.getAttribute('d') for path in svg_dom.getElementsByTagName('path')]
     tmat_strings = [path.getAttribute('transform') for path in svg_dom.getElementsByTagName('path')]
@@ -145,8 +144,8 @@ def preprocess_student_data(max_n_pts, image_size, sketch_id, category):
         for xx, yy in zip(x, y):
             stack = np.array([[xx], [yy], [1]])
             stack_trans = tmat.dot(stack)
-            x_trans.append(float(stack_trans[0]))
-            y_trans.append(float(stack_trans[1]))
+            x_trans.append(float(stack_trans[0][0]))
+            y_trans.append(float(stack_trans[1][0]))
 
         x_full = x_full + x_trans
         y_full = y_full + y_trans
@@ -155,33 +154,32 @@ def preprocess_student_data(max_n_pts, image_size, sketch_id, category):
         X_full[count].append(y_full)
         count = count + 1
 
-    svg_pts = [X_full]
+    X_student = vector_process(max_n_pts, image_size, [X_full], [category])
 
-    y_student = [categories.index(category)]
-    X_student = np.array(vector_process(max_n_pts, image_size, svg_pts))
+    dataset = tf.data.Dataset.from_tensors((tf.ragged.constant(X_student[0]['raw_data']),
+                                            tf.constant(X_student[0]['data']),
+                                            tf.constant(X_student[0]['label'])))
 
-    return y_student, X_student, svg_pts
+    return dataset
 
 
-def preprocess_raw_data(image_size, raw_data_dir, preprocess_data_dir, n_per_class):
+def preprocess_raw_data(mmm, image_size, raw_data_dir, preprocess_data_dir, n_per_class, preprocess=True):
 
-    for cat in categories:
-        count = 0
-        max_n_pts = 0
-        #to_write = []
-        vector_data = []
-        label_data = []
-        print(f'[PREPROCESSING {cat} data]')
-        with jsonlines.open(f'{raw_data_dir}/{cat}.ndjson') as reader:
-            for obj in reader:
-                vector_data.append(obj['drawing'])
-                label_data.append(cat)
-                n_pts = 0
-                for stroke in obj['drawing']:
-                    n_pts += len(np.array(stroke).T)
-                if  n_pts > max_n_pts: max_n_pts = n_pts
-                if count == (n_per_class-1): break
-                count += 1
-        to_write = vector_process(max_n_pts, image_size, vector_data, label_data)
-        with jsonlines.open(f'{preprocess_data_dir}/{cat}.ndjson', 'w') as writer:
-            writer.write_all(to_write)
+    if preprocess:
+        for cat in categories:
+            count = 0
+            vector_data = []
+            label_data = []
+            print(f'[PREPROCESSING {cat} data]')
+            with jsonlines.open(f'{raw_data_dir}/{cat}.ndjson') as reader:
+                for obj in reader:
+                    vector_data.append(obj['drawing'])
+                    label_data.append(cat)
+                    n_pts = 0
+                    for stroke in obj['drawing']:
+                        n_pts += len(np.array(stroke).T)
+                    if count == (n_per_class-1): break
+                    count += 1
+            to_write = vector_process(mmm, image_size, vector_data, label_data)
+            with jsonlines.open(f'{preprocess_data_dir}/{cat}.ndjson', 'w') as writer:
+                writer.write_all(to_write)
