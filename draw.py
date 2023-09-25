@@ -30,40 +30,6 @@ Args:
   y_predict:
     Predicted labels in integer array.
 """
-def draw_label_probs(X, y, y_predict, category, index=None):
-
-    draw_indices = [i for i, c in enumerate(zip(y, y_predict)) if categories[c[0]] == category]
-    X_draw = [X[i] for i in draw_indices]
-    y_draw = [y[i] for i in draw_indices]
-    y_predict_draw = [y_predict[i] for i in draw_indices]
-
-    if index is None: index = random.randint(0, len(draw_indices))
-
-    palette = sn.color_palette("husl", 8)
-
-    fig, axs = plt.subplots(1, 2, figsize=(8,4))
-    for stroke in X_draw[index]:
-        axs[0].plot(stroke[0], stroke[1], color='k', linewidth=3)
-    true_label = categories[y_draw[index]] if isinstance(y_draw[index], int) else y_draw[index]
-    axs[0].title.set_text(f'truth = {true_label}')
-    axs[1].title.set_text(f'DAISY\'s prediction')
-    axs[1].barh(np.array(categories)[np.argsort(y_predict_draw[index])],
-                                     y_predict_draw[index][np.argsort(y_predict_draw[index])],
-                color=palette)
-    axs[0].axis('off')
-    axs[1].tick_params(left=False)
-    axs[1].set_xlim(0,1)
-    axs[0].invert_yaxis()
-    for y, x in enumerate(y_predict_draw[index][np.argsort(y_predict_draw[index])]):
-        axs[1].annotate(f"   {x*100:.1f}%", xy=(x, y), va='center')
-    fig.tight_layout()
-    axs[1].spines['top'].set_visible(False)
-    axs[1].spines['right'].set_visible(False)
-    axs[1].spines['bottom'].set_visible(False)
-    axs[1].get_xaxis().set_ticks([])
-    plt.show()
-
-
 def draw_misclassification_grid(X, y, y_predict, true_category, index=None):
 
     in_class = [i for i, c in enumerate(zip(y, y_predict)) if categories[c[0]] == true_category]
@@ -142,7 +108,7 @@ def draw_label_probs(X, y, y_predict, category, index=None):
     y_draw = [y[i] for i in draw_indices]
     y_predict_draw = [y_predict[i] for i in draw_indices]
 
-    if index is None: index = random.randint(0, len(draw_indices))
+    if index is None: index = random.randint(0, len(draw_indices)-1)
 
     palette = sn.color_palette("husl", 8)
 

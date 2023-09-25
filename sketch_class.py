@@ -10,8 +10,10 @@ import pandas as pd
 import seaborn as sn
 from sklearn.model_selection import train_test_split
 import tensorflow as tf
+from ipywidgets import widgets
 
-from preprocess import vector_process
+from preprocess import preprocess_student_data
+from draw import draw_label_probs
 
 
 RANDOM_STATE = 10
@@ -183,3 +185,62 @@ def get_data(preprocess_data_dir, n_per_class):
 
     return dataset.shuffle(n_per_class*len(categories), seed=RANDOM_STATE,
                            reshuffle_each_iteration=False)
+
+
+"""Preprocesses and predicts student data.
+
+Preprocesses student data and makes predictions, widget-based.
+
+Args:
+  student_data_dir:
+    String. Absolute directory path to student data directory.
+  category:
+    String. Category of student drawing to process.
+  num:
+    Integer. Number of student drawing within that category to process.
+
+Returns:
+
+  Tensorflow dataset containing raw drawing data, simplified (preprocessed)
+  data, and integer category label.
+
+"""
+def student_predict_and_plot(student_data_dir, max_n_pts, img_size, model, batch_size):
+
+    def select_plot(category, number):
+        
+        category_dir = os.path.join(student_data_dir, f'{category}')
+        file_list = os.listdir(category_dir)
+        valid_files = []
+        
+        for file in file_list:
+
+            name = file.split('.svg')[0]
+            try:
+                iname = int(name)
+                valid_files.append(int(file.split('.svg')[0]))
+            except ValueError:
+                print(f'{category_dir}/{name}.svg is not a valid file name, rename to 1.svg, 2.svg, or etc. to view result')
+
+        if number in valid_files:
+
+            student_dataset = preprocess_student_data(max_n_pts, img_size, number, category)
+        
+            student_dataset_map = student_dataset.map(lambda raw_data, data, label: (data, label))
+            student_dataset_padded = student_dataset_map.padded_batch(batch_size, padded_shapes=([max_n_pts,2], []))
+        
+            y_student_pred = model.predict(student_dataset_padded)
+        
+            raw_student_data = np.asarray(list(student_dataset.map(lambda raw_data, data, label: raw_data)))
+            student_labels = np.asarray(list(student_dataset.map(lambda raw_data, data, label: label)))
+
+            draw_label_probs(raw_student_data, student_labels, y_student_pred, category, index=number-1)
+
+        else:
+
+            print(f'[ERROR]: no file named {number}.svg in {category_dir}, please retry!')
+
+    category = widgets.Dropdown(options=categories, description='category:', value=categories[0])
+    number = widgets.BoundedIntText(min=1, value=1, description='drawing number:')
+
+    widgets.interact(select_plot, category=category, number=number)
