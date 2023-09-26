@@ -67,9 +67,10 @@ def get_dataset_partitions(dataset, dataset_size, train_split,
     validation_size = int(validation_split * dataset_size)
     test_size = dataset_size - train_size - validation_size
 
-    train_dataset = dataset.take(train_size)    
-    validation_dataset = dataset.skip(train_size).take(validation_size)
-    test_dataset = dataset.skip(train_size).skip(validation_size)
+    #return dataset.cache().prefetch(tf.data.AUTOTUNE)
+    train_dataset = dataset.take(train_size).cache().prefetch(tf.data.AUTOTUNE)
+    validation_dataset = dataset.skip(train_size).take(validation_size).cache().prefetch(tf.data.AUTOTUNE)
+    test_dataset = dataset.skip(train_size).skip(validation_size).cache().prefetch(tf.data.AUTOTUNE)
 
     return ((train_dataset, validation_dataset, test_dataset),
             (train_size, validation_size, test_size))
@@ -80,8 +81,9 @@ def get_dataset_partitions(dataset, dataset_size, train_split,
 Architecture is defined, model is compiled, trained, and saved. Model consists
 of two LSTM layers, along with dropout layers, and two fully connected layers,
 as well as a softmax. Note that this model, trained using around 1k samples
-per class, will give only around 80% accuracy. This works well for the purposes
-of a tutorial/demo, where we want to see some incorrect examples. Saves and
+per class, will give only around 85% accuracy. This works well for the purposes
+of a tutorial/demo, where we want to see some incorrect examples. Tuning the
+model parameters can easily produce a more accurate model. Also saves and
 returns the model.
 
 Args:
@@ -113,11 +115,11 @@ def compile_and_fit_model(model_dir, model_name, epochs, batch_size, max_n_pts,
         model = Sequential()
         model.add(Reshape((max_n_pts, 2)))
         model.add(Masking(mask_value=0.0))
-        model.add(LSTM(128, return_sequences=True))
+        model.add(LSTM(64, return_sequences=True))
         model.add(Dropout(0.3))
-        model.add(LSTM(128))
+        model.add(LSTM(64))
         model.add(Dropout(0.3))
-        model.add(Dense((256)))
+        model.add(Dense((32)))
         model.add(Dropout(0.3))
         model.add(Dense((8)))
         model.add(Activation('softmax'))
@@ -129,9 +131,9 @@ def compile_and_fit_model(model_dir, model_name, epochs, batch_size, max_n_pts,
 
         # train the model
         print(f'[Training AI]')
-        train_dataset_map = train_dataset.map(lambda raw_data, data, label: (data, label))
+        train_dataset_map = train_dataset.map(lambda raw_data, data, label: (data, label)).cache().prefetch(tf.data.AUTOTUNE)
         train_dataset_padded = train_dataset_map.padded_batch(batch_size, padded_shapes=([max_n_pts,2], []))
-        validate_dataset_map = validate_dataset.map(lambda raw_data, data, label: (data, label))
+        validate_dataset_map = validate_dataset.map(lambda raw_data, data, label: (data, label)).cache().prefetch(tf.data.AUTOTUNE)
         validate_dataset_padded = validate_dataset_map.padded_batch(batch_size, padded_shapes=([max_n_pts,2], []))
         model.fit(train_dataset_padded, epochs=epochs,
                   validation_data=validate_dataset_padded)
@@ -183,7 +185,8 @@ def get_data(preprocess_data_dir, n_per_class):
                                                                tf.TensorSpec(shape=(None, 2), dtype=tf.float32),
                                                                tf.TensorSpec(shape=(), dtype=tf.int32)))
 
-    return dataset.cache().prefetch(tf.data.AUTOTUNE)
+    #return dataset.cache().prefetch(tf.data.AUTOTUNE)
+    return dataset
 
 
 """Preprocesses and predicts student data.

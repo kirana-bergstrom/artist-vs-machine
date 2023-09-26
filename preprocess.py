@@ -164,7 +164,7 @@ def preprocess_student_data(max_n_pts, image_size, sketch_id, category):
     return dataset
 
 
-def preprocess_raw_data(max_n_pts, image_size, raw_data_dir, preprocess_data_dir, n_per_class, preprocess=True):
+def preprocess_raw_data(max_n_pts, image_size, raw_data_dir, preprocess_data_dir, n_per_class, preprocess=True, random_seed=10):
 
     if preprocess:
         total_vector_data = []
@@ -184,4 +184,5 @@ def preprocess_raw_data(max_n_pts, image_size, raw_data_dir, preprocess_data_dir
                     count += 1
             total_vector_data = total_vector_data + vector_process(max_n_pts, image_size, vector_data, label_data)
         with jsonlines.open(f'{preprocess_data_dir}/preprocessed_{n_per_class}-per-class.ndjson', 'w') as writer:
+            random.seed(random_seed)
             writer.write_all(random.sample(total_vector_data, n_per_class * len(categories)))
