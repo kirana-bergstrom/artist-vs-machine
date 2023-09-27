@@ -1,7 +1,8 @@
 # Artist vs The Machine: can you beat an AI at Pictionary?
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/kirana-bergstrom/artist-vs-machine/HEAD?labpath=notebook_tutorial.ipynb)
-A version of this tutorial can be run on binder.
+
+Click the Binder badge to run the interactive tutorial.
 
 This repository contains materials needed to run an interactive tutorial on utilizing Artificial Intelligence (AI) for atmospheric science titled "Artist vs. The Machine: can you beat an AI at Pictionary?".
 The tutorial demonstrates the usefulness of image classification for scientific applications by creating and demoing a model - named DAISY - that can identify simply sketches of weather patterns, then walks students through some guided discussion questions that make the connection between sketch classification (i.e. Pictionary) and real-world applications in meteorology.
@@ -37,6 +38,7 @@ Before giving this tutorial, it is advised that you check all the generated imag
 
 ## Getting started
 A straightforward way to teach the material in this tutorial is to use the hosted notebook available on Binder.
+Click the Binder badge at the top of this README.
 
 Otherwise, you can run the tutorial on your local machine using the instructions below.
 
