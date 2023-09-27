@@ -38,7 +38,7 @@ def draw_misclassification_grid(test_dataset, y_predict, true_category, index=No
 
     max_num_misclass = 5
     fig, axs = plt.subplots(1, max_num_misclass, figsize=(10,2))
-    fig.suptitle(f'DAISY said {true_category}:', color='none', size=15, weight='bold')
+    fig.suptitle(f'DAISY says: {true_category}', color='none', size=15, weight='bold')
     for ind_drawing in range(max_num_misclass):
         axs[ind_drawing].axis('off')
         axs[ind_drawing].invert_yaxis()
@@ -47,7 +47,7 @@ def draw_misclassification_grid(test_dataset, y_predict, true_category, index=No
     fig.tight_layout()
 
     def select_category(false_category):
-        fig.suptitle(f'DAISY says {true_category}:', color='none', size=15, weight='bold')
+        fig.suptitle(f'DAISY says: {true_category}', color='none', size=15, weight='bold')
         
         if false_category != None:
             X_draw = []
@@ -72,7 +72,7 @@ def draw_misclassification_grid(test_dataset, y_predict, true_category, index=No
                                            bbox=dict(facecolor='w', edgecolor='k'))
                 for stroke in X_draw[ind_drawing]:
                     axs[ind_drawing].plot(stroke[0], stroke[1], color='k')
-                fig.suptitle(f'DAISY says {pred_category}:',
+                fig.suptitle(f'DAISY says: {pred_category}',
                              color='mediumvioletred', size=15, weight='bold')
             fig.canvas.draw_idle()
 

@@ -12,7 +12,3 @@ while read line; do
     gsutil -m cp $URL data/raw
     i=$((i+1))  
 done < $categories_file
-
-# reduces and simplifies the data
-NUM_SIMPLE=10000
-python simple_data.py $NUM_SIMPLE

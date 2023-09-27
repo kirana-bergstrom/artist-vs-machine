@@ -222,7 +222,7 @@ def student_predict_and_plot(student_data_dir, max_n_pts, img_size, model, batch
                 iname = int(name)
                 valid_files.append(int(file.split('.svg')[0]))
             except ValueError:
-                print(f'{category_dir}/{name}.svg is not a valid file name, rename to 1.svg, 2.svg, or etc. to view result')
+                pass
 
         if number in valid_files:
 
