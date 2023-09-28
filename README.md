@@ -1,14 +1,13 @@
 # Artist vs The Machine: can you beat an AI at Pictionary?
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/kirana-bergstrom/artist-vs-machine/HEAD?labpath=notebook_tutorial.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/kirana-bergstrom/artist-vs-machine/blob/trunk/notebook_tutorial.ipynb)
 
-Click the Binder badge to run the interactive tutorial.
+Click the Binder badge to run the interactive tutorial in Binder, or the colab badge to run in Google Colab.
 
 This repository contains materials needed to run an interactive tutorial on utilizing Artificial Intelligence (AI) for atmospheric science titled "Artist vs. The Machine: can you beat an AI at Pictionary?".
 The tutorial demonstrates the usefulness of image classification for scientific applications by creating and demoing a model - named DAISY - that can identify simply sketches of weather patterns, then walks students through some guided discussion questions that make the connection between sketch classification (i.e. Pictionary) and real-world applications in meteorology.
-
 ![label_drawing](images/label_drawing.png)
-
 This tutorial is aimed at middle to high school level students, and contains an interactive component where students create their own sketches online and the instructor inputs these sketches into the AI and shows the results in real-time.
 It uses Google's [Quick Draw!](https://quickdraw.withgoogle.com) Dataset for training the AI model and was originally developed by scientists at the Global Systems Laboratory of the National Oceanic at Atmospheric Administration (NOAA) and the Cooperative Institute for Research in Earth Sciences (CIRES) at the University of Colorado Boulder.
 It also directs students to [Sketchpad](https://sketch.io/sketchpad/) to draw their own sketches. 
