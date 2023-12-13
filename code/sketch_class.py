@@ -12,8 +12,8 @@ from sklearn.model_selection import train_test_split
 import tensorflow as tf
 from ipywidgets import widgets
 
-from code.preprocess import preprocess_student_data
-from code.draw import draw_label_probs
+from preprocess import preprocess_student_data
+from draw import draw_label_probs
 
 
 RANDOM_STATE = 10
@@ -135,6 +135,7 @@ def compile_and_fit_model(model_dir, model_name, epochs, batch_size, max_n_pts,
         train_dataset_padded = train_dataset_map.padded_batch(batch_size, padded_shapes=([max_n_pts,2], []))
         validate_dataset_map = validate_dataset.map(lambda raw_data, data, label: (data, label)).cache().prefetch(tf.data.AUTOTUNE)
         validate_dataset_padded = validate_dataset_map.padded_batch(batch_size, padded_shapes=([max_n_pts,2], []))
+
         model.fit(train_dataset_padded, epochs=epochs,
                   validation_data=validate_dataset_padded)
 

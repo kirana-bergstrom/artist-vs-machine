@@ -1,0 +1,13 @@
+gsutil
+ipympl
+jupyter
+jsonlines
+keras
+matplotlib
+numpy
+rdp
+seaborn
+scikit-learn
+svg.path
+tensorflow
+tqdm
