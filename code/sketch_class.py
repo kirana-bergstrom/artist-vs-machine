@@ -12,8 +12,10 @@ from sklearn.model_selection import train_test_split
 import tensorflow as tf
 from ipywidgets import widgets
 
-from code.draw import draw_label_probs_student
-from code.preprocess import preprocess_student_data
+from draw import draw_label_probs_student
+from preprocess import preprocess_student_data
+#from code.draw import draw_label_probs_student
+#from code.preprocess import preprocess_student_data
 
 
 RANDOM_STATE = 10
