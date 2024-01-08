@@ -89,7 +89,10 @@ def drawing_process(max_n_pts, image_size, raw_data):
     binary_image[1][:image_len] = y[:image_len]
     binary_image = (np.array(binary_image).T).tolist()
 
-    return {"raw_data" : drawing, "data" : binary_image, "label" : categories.index(label)}
+    if label == "":
+        return {"raw_data" : drawing, "data" : binary_image, "label" : ""}
+    else:
+        return {"raw_data" : drawing, "data" : binary_image, "label" : categories.index(label)}
 
 
 """Preprocesses raw Quick, Draw! drawing vector data.
@@ -117,9 +120,9 @@ def vector_process(max_n_pts, image_size, raw_data, labels):
     return preprocessed_data
 
 
-def preprocess_student_data(max_n_pts, image_size, sketch_id, category):
+def preprocess_student_data(student_data_dir, max_n_pts, image_size, drawing_name):
 
-    svg_dom = minidom.parse(f'./data/student/{category}/{sketch_id}.svg')
+    svg_dom = minidom.parse(f'{student_data_dir}/{drawing_name}')
 
     path_strings = [path.getAttribute('d') for path in svg_dom.getElementsByTagName('path')]
     tmat_strings = [path.getAttribute('transform') for path in svg_dom.getElementsByTagName('path')]
@@ -155,14 +158,13 @@ def preprocess_student_data(max_n_pts, image_size, sketch_id, category):
         X_full[count].append(y_full)
         count = count + 1
 
-    X_student = vector_process(max_n_pts, image_size, [X_full], [category])
+    X_student = vector_process(max_n_pts, image_size, [X_full], [''])
 
     dataset = tf.data.Dataset.from_tensors((tf.ragged.constant(X_student[0]['raw_data']),
                                             tf.constant(X_student[0]['data']),
                                             tf.constant(X_student[0]['label'])))
 
     return dataset
-
 
 def preprocess_raw_data(max_n_pts, image_size, raw_data_dir, preprocess_data_dir, n_per_class, preprocess=True, random_seed=10):
 

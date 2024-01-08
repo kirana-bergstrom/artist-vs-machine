@@ -12,8 +12,8 @@ from sklearn.model_selection import train_test_split
 import tensorflow as tf
 from ipywidgets import widgets
 
-from preprocess import preprocess_student_data
-from draw import draw_label_probs
+from code.draw import draw_label_probs_student
+from code.preprocess import preprocess_student_data
 
 
 RANDOM_STATE = 10
@@ -67,7 +67,6 @@ def get_dataset_partitions(dataset, dataset_size, train_split,
     validation_size = int(validation_split * dataset_size)
     test_size = dataset_size - train_size - validation_size
 
-    #return dataset.cache().prefetch(tf.data.AUTOTUNE)
     train_dataset = dataset.take(train_size).cache().prefetch(tf.data.AUTOTUNE)
     validation_dataset = dataset.skip(train_size).take(validation_size).cache().prefetch(tf.data.AUTOTUNE)
     test_dataset = dataset.skip(train_size).skip(validation_size).cache().prefetch(tf.data.AUTOTUNE)
@@ -186,7 +185,6 @@ def get_data(preprocess_data_dir, n_per_class):
                                                                tf.TensorSpec(shape=(None, 2), dtype=tf.float32),
                                                                tf.TensorSpec(shape=(), dtype=tf.int32)))
 
-    #return dataset.cache().prefetch(tf.data.AUTOTUNE)
     return dataset
 
 
@@ -210,37 +208,20 @@ Returns:
 """
 def student_predict_and_plot(student_data_dir, max_n_pts, img_size, model, batch_size):
 
-    def select_plot(category, number):
-        
-        category_dir = os.path.join(student_data_dir, f'{category}')
-        file_list = os.listdir(category_dir)
-        valid_files = []
-        
-        for file in file_list:
+    def select_plot(drawing_name):
 
-            name = file.split('.svg')[0]
-            try:
-                iname = int(name)
-                valid_files.append(int(file.split('.svg')[0]))
-            except ValueError:
-                pass
+        student_dataset = preprocess_student_data(student_data_dir, max_n_pts, img_size, drawing_name)
+    
+        student_dataset_map = student_dataset.map(lambda raw_data, data, label: (data, label))
+        student_dataset_padded = student_dataset_map.padded_batch(batch_size, padded_shapes=([max_n_pts,2], []))
+    
+        y_student_pred = model.predict(student_dataset_padded)
+    
+        draw_label_probs_student(student_dataset, y_student_pred, '')
 
-        if number in valid_files:
+    file_list = os.listdir(student_data_dir)
+    file_list = sorted([f for f in file_list if f.endswith('.svg')])
 
-            student_dataset = preprocess_student_data(max_n_pts, img_size, number, category)
-        
-            student_dataset_map = student_dataset.map(lambda raw_data, data, label: (data, label))
-            student_dataset_padded = student_dataset_map.padded_batch(batch_size, padded_shapes=([max_n_pts,2], []))
-        
-            y_student_pred = model.predict(student_dataset_padded)
-        
-            draw_label_probs(student_dataset, y_student_pred, category, index=number-1)
+    drawing_name = widgets.Dropdown(options=file_list, description='drawing:', value=file_list[0])
 
-        else:
-
-            print(f'[ERROR]: no file named {number}.svg in {category_dir}, please retry!')
-
-    category = widgets.Dropdown(options=categories, description='category:', value=categories[0])
-    number = widgets.BoundedIntText(min=1, value=1, description='drawing number:')
-
-    widgets.interact(select_plot, category=category, number=number)
+    widgets.interact(select_plot, drawing_name=drawing_name)

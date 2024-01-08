@@ -15,20 +15,23 @@ with open(os.path.join(os.getcwd(),'categories.txt')) as f:
      categories = [line.rstrip('\n') for line in f]
 
 
-"""Draws and labels a misclassified data point.
+"""Draws and labels a grid of misclassified drawings.
 
-Takes a vector of sketch data, labels, and predicted labels, and draws one of
-the vector entries with title as label.
+Draws up to 5 misclassified drawings for each category corresponding to a
+true category. For example, if the true category is lightning, then
+will draw up to 5 drawings that were actually lightning but were misclassified
+by DAISY as clouds, up to 5 that were actually lightning but were misclassified
+by DAISY as tornados, etc.
 
 Args:
-  index:
-    Index of which drawing to create.
-  X:
-    Sketches in array of drawings.
-  y:
-    True labels in integer array.
+  test_dataset:
+    Test dataset (tf dataset) including labels and vector data.
   y_predict:
-    Predicted labels in integer array.
+    DAISY's predictions for the true dataset (np array).
+  true_category:
+    True category, string.
+  index:
+    Index (within category) to start on.
 """
 def draw_misclassification_grid(test_dataset, y_predict, true_category, index=None):
 
@@ -40,7 +43,12 @@ def draw_misclassification_grid(test_dataset, y_predict, true_category, index=No
     fig, axs = plt.subplots(1, max_num_misclass, figsize=(10,2))
     fig.suptitle(f'DAISY says: {true_category}', color='none', size=15, weight='bold')
     for ind_drawing in range(max_num_misclass):
-        axs[ind_drawing].axis('off')
+        axs[ind_drawing].set_xticks([])
+        axs[ind_drawing].set_yticks([])
+        axs[ind_drawing].spines['bottom'].set_color('w')
+        axs[ind_drawing].spines['top'].set_color('w') 
+        axs[ind_drawing].spines['right'].set_color('w')
+        axs[ind_drawing].spines['left'].set_color('w')
         axs[ind_drawing].invert_yaxis()
         axs[ind_drawing].set_title(true_category, color='none', size=10, weight='bold', y=0.0,
                                    bbox=dict(facecolor='none', edgecolor='none'))
@@ -62,18 +70,24 @@ def draw_misclassification_grid(test_dataset, y_predict, true_category, index=No
                     for_index += 1
                     
             for ind_drawing in range(max_num_misclass):
-                axs[ind_drawing].set_title(true_category, color='none', size=10, weight='bold', y=0.0,
-                           bbox=dict(facecolor='none', edgecolor='none'))
+                axs[ind_drawing].spines['bottom'].set_color('w')
+                axs[ind_drawing].spines['top'].set_color('w') 
+                axs[ind_drawing].spines['right'].set_color('w')
+                axs[ind_drawing].spines['left'].set_color('w')
+                axs[ind_drawing].set_title(f'Artist label: {true_category}', color='none', size=8.5, weight='bold', y=-0.155)
                 for line in axs[ind_drawing].lines: line.remove()
                     
             for ind_drawing in range(np.min([max_num_misclass, len(X_draw)])):
                 pred_category = categories[np.argmax(y_draw[ind_drawing])]
-                axs[ind_drawing].set_title(true_category, color='k', size=8, weight='bold', y=-0.1,
-                                           bbox=dict(facecolor='w', edgecolor='k'))
+                axs[ind_drawing].set_title(f'Artist label: {true_category}', size=8.5, weight='bold', y=-0.155, color='dimgray')
+                axs[ind_drawing].spines['bottom'].set_color('k')
+                axs[ind_drawing].spines['top'].set_color('k') 
+                axs[ind_drawing].spines['right'].set_color('k')
+                axs[ind_drawing].spines['left'].set_color('k')
                 for stroke in X_draw[ind_drawing]:
                     axs[ind_drawing].plot(stroke[0], stroke[1], color='k')
                 fig.suptitle(f'DAISY says: {pred_category}',
-                             color='mediumvioletred', size=15, weight='bold')
+                             color='mediumvioletred', size=16, weight='bold', y=0.875)
             fig.canvas.draw_idle()
 
     c = widgets.Dropdown(options=[cat for cat in categories if cat != true_category], description='category:', value=None)
@@ -95,28 +109,6 @@ Args:
   y_predict:
     Predicted labels in integer array.
 """
-def draw_misclassification(X, y, y_predict, true_category, false_category, index=None):
-
-    plt.close()
-
-    draw_indices = [i for i, c in enumerate(zip(y, y_predict)) if categories[c[0]] == true_category and categories[np.argmax(c[1])] == false_category]
-    X_draw = [X[i] for i in draw_indices]
-    y_draw = [y[i] for i in draw_indices]
-    y_predict_draw = [y_predict[i] for i in draw_indices]
-
-    if index is None: index = random.randint(0, len(draw_indices))
-
-    plt.figure()
-    for stroke in X_draw[index]:
-        plt.plot(stroke[0], stroke[1], color='k', linewidth=3)
-        true_label = categories[y_draw[index]] if isinstance(y_draw[index], int) else y_draw[index]
-        predicted_label = categories[np.argmax(y_predict_draw[index])]
-        plt.title(f'truth = {true_label}, predicted = {predicted_label}', color='crimson', weight='bold')
-    plt.axis('off')
-    plt.gca().invert_yaxis()
-    plt.show()
-
-
 def draw_label_probs(test_dataset, y_predict, category, index=None):
 
     plt.close()
@@ -126,30 +118,73 @@ def draw_label_probs(test_dataset, y_predict, category, index=None):
     for_index = 0
     for count, d in enumerate(test_dataset):
         raw_drawing, data, true_label = d
-        if categories[true_label] == category:
-            if for_index >= index: break
-            for_index += 1
-    #X_draw = [X[i] for i in draw_indices]
-    #y_draw = [y[i] for i in draw_indices]
-    #y_predict_draw = [y_predict[i] for i in draw_indices]
+        if category != '':
+            if categories[true_label] == category:
+                if for_index >= index: break
+                for_index += 1
 
     palette = sn.color_palette("husl", 8)
 
     fig, axs = plt.subplots(1, 2, figsize=(8,4))
-    #for stroke in X_draw[index]:
     for stroke in raw_drawing:
         axs[0].plot(stroke[0], stroke[1], color='k', linewidth=3)
-    #true_label = categories[y_predict[count]]
-    axs[0].set_title(f'{categories[true_label]}', weight='bold', y=0.0, size=15, bbox=dict(facecolor='w', edgecolor='k'))
-    axs[1].set_title(f'DAISY says: {categories[np.argmax(y_predict[count])]}', weight='bold', size=15, color='mediumvioletred')
-    axs[1].barh(np.array(categories)[np.argsort(y_predict[count])], y_predict[count][np.argsort(y_predict[count])],
-                color=palette)
-    axs[0].axis('off')
+    if category != '': axs[0].set_title(f'Artist label: {categories[true_label]}', weight='bold', y=-0.1, size=16, color='dimgray')
+    axs[0].text(0.5, 1.03, f'DAISY says: {categories[np.argmax(y_predict[count])]}', weight='bold',
+                size=16, color='mediumvioletred', ha='center', transform=axs[0].transAxes)
+    axs[1].barh(categories, y_predict[count], color='mediumvioletred')
+    axs[0].set_xticks([])
+    axs[0].set_yticks([])
     axs[1].tick_params(left=False)
     axs[1].set_xlim(0,1)
     axs[0].invert_yaxis()
-    for y, x in enumerate(y_predict[count][np.argsort(y_predict[count])]):
+    axs[1].invert_yaxis()
+    for y, x in enumerate(y_predict[count]):
         axs[1].annotate(f"   {x*100:.1f}%", xy=(x, y), va='center')
+    fig.tight_layout()
+    axs[1].spines['top'].set_visible(False)
+    axs[1].spines['right'].set_visible(False)
+    axs[1].spines['bottom'].set_visible(False)
+    axs[1].get_xaxis().set_ticks([])
+    axs[1].xaxis.set_tick_params(size=15, color='mediumvioletred')
+    plt.show()
+
+
+def draw_label_probs_student(test_dataset, y_predict, category, index=None):
+
+    def plotty(tog, ax, y_predict, count, text):
+
+        if tog:
+
+            ax.barh(np.array(categories),
+                    y_predict[count], color='mediumvioletred')
+            for y, x in enumerate(y_predict[count]):
+                ax.annotate(f"   {x*100:.1f}%", xy=(x, y), va='center')
+            text.set_color('mediumvioletred')
+
+    plt.close()
+
+    if index is None: index = 0
+
+    for_index = 0
+    for count, d in enumerate(test_dataset):
+        raw_drawing, data, true_label = d
+
+    fig, axs = plt.subplots(1, 2, figsize=(8,4))
+    for stroke in raw_drawing:
+        axs[0].plot(stroke[0], stroke[1], color='k', linewidth=3)
+    text = axs[0].text(0.5, 1.03, f'DAISY says: {categories[np.argmax(y_predict[count])]}', weight='bold',
+                       size=16, color='w', ha='center', transform=axs[0].transAxes)
+    axs[1].barh(np.array(categories), [0.0] * len(categories), color='mediumvioletred')
+    axs[1].invert_yaxis()
+    tog = widgets.ToggleButton(value=False, description='DAISY says...')
+    widgets.interact(plotty, tog=tog, ax=widgets.fixed(axs[1]),
+                     y_predict=widgets.fixed(y_predict), count=widgets.fixed(count), text=widgets.fixed(text))
+
+    axs[0].set_xticks([])
+    axs[0].set_yticks([])
+    axs[1].tick_params(left=False)
+    axs[1].set_xlim(0,1.2)
+    axs[0].invert_yaxis()
     fig.tight_layout()
     axs[1].spines['top'].set_visible(False)
     axs[1].spines['right'].set_visible(False)
@@ -189,38 +224,18 @@ def draw_and_label_widget(index, test_dataset, y_predict):
 
     true_label = categories[label]
     predicted_label = categories[np.argmax(y_predict[index])]
-    plt.title(f'{true_label}', size=20, weight='bold', y=0.0,
-              bbox=dict(facecolor='w', edgecolor='k'))
-    ax.axis('off')
+    plt.title(f'Artist label: {true_label}', size=16, weight='bold', y=-0.1, color='dimgray')
+    ax.set_xticks([])
+    ax.set_yticks([])
     ax.invert_yaxis()
 
     def label_plot(var):
         if var:
-            plt.text(0.5, -0.09, f'DAISY says: {predicted_label}', weight='bold', size=15, color='mediumvioletred', ha='center',
-                     transform=ax.transAxes, bbox=dict(facecolor='w', edgecolor='none'))
+            plt.text(0.5, 1.03, f'DAISY says: {predicted_label}', weight='bold', size=16, color='mediumvioletred', ha='center',
+                     transform=ax.transAxes)
         fig.canvas.draw_idle()
 
     widgets.interact(label_plot, var=widgets.ToggleButton(value=False, description='DAISY says...'))
-
-
-def draw_and_label(index, X, y, y_predict):
-
-    plt.close()
-
-    plt.figure(figsize=(5,4))
-    ax = plt.gca()
-
-    for stroke in X[index]:
-        plt.plot(stroke[0], stroke[1], color='k', linewidth=3)
-
-    true_label = categories[y[index]] if isinstance(y[index], int) else y[index]
-    predicted_label = categories[np.argmax(y_predict[index])]
-    plt.text(0.5, 1.0, f'DAISY says: {predicted_label}', weight='bold', size=10, transform=ax.transAxes)
-    plt.title(f'{true_label}', size=20, weight='bold', y=0.0,
-              bbox=dict(facecolor='w', edgecolor='k'))
-    plt.axis('off')
-    plt.gca().invert_yaxis()
-    plt.show()
 
 
 """Draws a bunch of images from a certain category.
@@ -242,14 +257,15 @@ def draw_grid_widget(data, category, n_rows=3, n_cols=8, start_index=None):
 
     fig, axs = plt.subplots(n_rows, n_cols, figsize=(n_cols, n_rows))
     rectangles = []
-    plt.suptitle(category, weight='bold', y=0.1, size=15, bbox=dict(facecolor='none', edgecolor='k'))
+    plt.suptitle(f'Artist label: {category}', weight='bold', y=0.1, size=16, color='dimgray')
     for i in range(n_rows):
         for j in range(n_cols):
             raw_data, simple_data, label = next(iterator)
             sketch_num = start_index + i * n_cols + j
             for line in raw_data:
                 axs[i,j].plot(line[0], line[1], color='k', linewidth=2)
-            axs[i,j].axis('off')
+            axs[i,j].set_xticks([])
+            axs[i,j].set_yticks([])
             axs[i,j].invert_yaxis()
             rectangles.append(patches.Rectangle((0,0), 110, 110, color="gray", alpha=0.0, transform=axs[i,j].transAxes))
             axs[i,j].add_patch(rectangles[sketch_num-start_index])
@@ -292,10 +308,12 @@ def draw(data, category, index=None):
         if i >= index: break
 
     plt.figure(figsize=(5,4))
+    ax = plt.gca()
     raw_data, simple_data, label = d
     for stroke in raw_data:
         plt.plot(stroke[0], stroke[1], color='k', linewidth=3)
-    plt.title(f'{categories[label]}', weight='bold', size=20, y=-0.1, bbox=dict(facecolor='w', edgecolor='k'))
-    plt.axis('off')
-    plt.gca().invert_yaxis()
+    plt.title(f'Artist label: {categories[label]}', weight='bold', size=16, y=-0.1, color='dimgray')
+    ax.invert_yaxis()
+    ax.set_xticks([])
+    ax.set_yticks([])
     plt.show()
