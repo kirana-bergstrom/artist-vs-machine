@@ -1,4 +1,4 @@
-# Artist vs The Machine: can you beat an AI at Pictionary?
+# Artist vs The Machine: Can you beat an AI at Pictionary?
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/kirana-bergstrom/artist-vs-machine/HEAD?labpath=notebook_tutorial.ipynb)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/kirana-bergstrom/artist-vs-machine/blob/trunk/colab_notebook_tutorial.ipynb)
