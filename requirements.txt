@@ -1,12 +1,12 @@
 ipympl
 jupyter
 jsonlines
-keras
+keras==2.14.0
 matplotlib
 numpy
 rdp
 seaborn
 scikit-learn
 svg.path
-tensorflow
+tensorflow==2.14.0
 tqdm
